@@ -4,6 +4,11 @@ gen :
 clean :
 	rm -rf psm
  
+prisma-generate:
+	go run github.com/steebchen/prisma-client-go generate dev
+
+migrate :
+	go run github.com/steebchen/prisma-client-go migrate dev
 # run :
 # 	go build
 # 	./grpc

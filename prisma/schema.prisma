@@ -1,0 +1,130 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+generator db {
+    provider = "go run github.com/steebchen/prisma-client-go"
+}
+
+// Keybord layout enum
+
+// enum KeyboardLayout {
+//     UNKNOWN
+//     QWERTY
+//     QWERTZ
+//     AZERTY
+// }
+
+// model KeyboardType {
+//     id      String         @id @default(dbgenerated("gen_random_uuid()")) @db.VarChar(36)
+//     layout  KeyboardLayout
+//     backlit Boolean
+//     Laptop  Laptop[]
+// }
+
+// // Memory unit enum
+
+// enum Unit {
+//     UNKNOWN
+//     BIT
+//     BYTE
+//     KILOBYTE
+//     MEGABYTE
+//     GIGABYTE
+//     TERABYTE
+// }
+
+// model Memory {
+//     id      String    @id @default(dbgenerated("gen_random_uuid()")) @db.VarChar(36)
+//     value   Int
+//     unit    Unit
+//     GPU     GPU[]
+//     Storage Storage[]
+//     Laptop  Laptop[]
+// }
+
+// // CPU model
+
+// model CPU {
+//     id      String   @id @default(dbgenerated("gen_random_uuid()")) @db.VarChar(36)
+//     brand   String
+//     name    String
+//     cores   Int
+//     threads Int
+//     minGhz  Float
+//     maxGhz  Float
+//     Laptop  Laptop[]
+// }
+
+// // GPU model
+
+// model GPU {
+//     id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.VarChar(36)
+//     brand    String
+//     name     String
+//     minGhz   Float
+//     maxGhz   Float
+//     memory   Memory  @relation(fields: [memoryId], references: [id])
+//     memoryId String  @db.VarChar(36)
+//     Laptop   Laptop? @relation(fields: [laptopId], references: [id])
+//     laptopId String? @db.VarChar(36)
+// }
+
+// enum Panel {
+//     UNKNOWN
+//     LCD
+//     IPS
+//     OLED
+// }
+
+// model Resolution {
+//     id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.VarChar(36)
+//     width  Int
+//     height Int
+//     Screen Screen[]
+// }
+
+// model Screen {
+//     id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.VarChar(36)
+//     sizeInch     Float
+//     resolution   Resolution @relation(fields: [resolutionId], references: [id])
+//     panel        Panel
+//     multiTouch   Boolean
+//     resolutionId String     @db.VarChar(36)
+//     Laptop       Laptop[]
+// }
+
+// enum Driver {
+//     UNKNOWN
+//     HDD
+//     SSD
+// }
+
+// model Storage {
+//     id       String @id @default(dbgenerated("gen_random_uuid()")) @db.VarChar(36)
+//     driver   Driver
+//     memory   Memory @relation(fields: [memoryId], references: [id])
+//     memoryId String @db.VarChar(36)
+//     Laptop   Laptop @relation(fields: [laptopId], references: [id])
+//     laptopId String @db.VarChar(36)
+// }
+
+// Laptop model
+
+model Laptop {
+    id          String   @unique
+    brand       String
+    name        String
+    cpu         String
+    gpu         String
+    ram         String
+    keyboard    String
+    storages    String
+    screen      String
+    weightKg    Float?
+    weightLbs   String?
+    priceInr    Float
+    releaseYear Int
+    updatedAt   DateTime @updatedAt
+}
