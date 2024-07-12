@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"great/prisma/db"
 	"great/psm"
+	"log"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -66,5 +67,29 @@ func (Db *LaptopService) FindLaptop(ctx context.Context, p *psm.FindLaptopReques
 	return &psm.FindLaptopResponse{
 		Laptop: lappy,
 	}, nil
+
+}
+
+func (Db *LaptopService) FilterLaptop(req *psm.FilterLaptopRequest, stream psm.LaptopService_FilterLaptopServer) error {
+	filter := req.GetFilter()
+
+	db_service := NewPrismaLaptopService(Db.Db)
+
+	log.Printf("searching laptop with filter: %v", filter)
+	err := db_service.FilterLaptopsasdasdas(context.Background(), filter, func(laptop *psm.Laptop) error {
+		log.Printf("found laptop with id: %s", laptop.Id)
+		err := stream.Send(&psm.FilterLaptopResponse{Laptop: laptop})
+		if err != nil {
+			log.Printf("cannot send laptop: %v", err)
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return status.Errorf(codes.Internal, "unexpected error: %v", err)
+	}
+
+	return nil
 
 }

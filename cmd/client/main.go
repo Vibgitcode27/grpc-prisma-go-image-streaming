@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"great/psm"
 	"great/sample"
+	"io"
 	"log"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -48,6 +50,57 @@ func FindLaptop(laptopClient psm.LaptopServiceClient, laptop *psm.Laptop) {
 
 }
 
+func FilterLaptop(laptopClient psm.LaptopServiceClient) {
+
+	// laptop := sample.NewLaptop()
+
+	filter := &psm.Filter{
+		MaxPriceInr: 900000,
+		Cpu:         `brand:Nvidia  name:GTX 1080  cores:8  threads:2  min_ghz:2  max_ghz:3`,
+		Gpu:         "Nvidia",
+	}
+
+	fmt.Println("Search laptop with filter", filter)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req := &psm.FilterLaptopRequest{
+		Filter: filter,
+	}
+
+	stream, err := laptopClient.FilterLaptop(ctx, req)
+	if err != nil {
+		log.Fatal("Cannot filter laptop", err)
+	}
+
+	for {
+		res, err := stream.Recv()
+
+		if err == io.EOF {
+			fmt.Printf("")
+			fmt.Printf("")
+			log.Printf("End of the file")
+			return
+		}
+
+		log.Printf("Received laptop with id: %s", res.GetLaptop())
+
+		if err != nil {
+			log.Fatal("Cannot receive laptop", err)
+			break
+		}
+		laptop := res.GetLaptop()
+
+		log.Printf("Found laptop with id: %s", laptop.GetId())
+		log.Printf("Laptop brand: %s", laptop.GetBrand())
+		log.Printf("Laptop name: %s", laptop.GetName())
+		log.Printf("Laptop CPU cores: %d", laptop.GetCpu().GetCores())
+		log.Printf("Laptop CPU ghz: %f", laptop.GetCpu().GetMinGhz())
+		log.Printf("Laptop RAM: %d %s", laptop.GetRam().GetValue(), laptop.GetRam().GetUnit())
+	}
+}
+
 func main() {
 	serverAddress := flag.String("address", "", "The server address in the format of host:port")
 	flag.Parse()
@@ -67,5 +120,6 @@ func main() {
 	// CreateLaptop(laptopClient)
 	// CreateLaptop(laptopClient)
 
-	FindLaptop(laptopClient, &psm.Laptop{Id: "ebc6a11c-4b2e-4e5c-98b3-8b5c70f55747"})
+	// FindLaptop(laptopClient, &psm.Laptop{Id: "ebc6a11c-4b2e-4e5c-98b3-8b5c70f55747"})
+	FilterLaptop(laptopClient)
 }

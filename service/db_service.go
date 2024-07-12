@@ -6,6 +6,7 @@ import (
 	"great/prisma/db"
 	"great/psm"
 	"great/sample"
+	"log"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -83,4 +84,29 @@ func convertToProtoLaptop(data *db.LaptopModel) *psm.Laptop {
 		ReleaseYear: uint32(data.ReleaseYear),
 		UpdatedAt:   timestamppb.New(data.UpdatedAt),
 	}
+}
+
+func (p *PrismaLaptopService) FilterLaptopsasdasdas(ctx context.Context, filter *psm.Filter, found func(laptop *psm.Laptop) error) error {
+
+	log.Printf("searching laptops with filter: %v", filter)
+	laptops, err := p.Db.Laptop.FindMany(
+		// db.Laptop.PriceInr.Equals(filter.GetMaxPriceInr()),
+		// db.Laptop.CPU.Equals(filter.GetCpu()),
+		db.Laptop.Gpu.Equals(filter.GetGpu()),
+	).Exec(ctx)
+
+	log.Printf("searching laptops with filter LKJSDLKJASLDKJSALKDJASLKDJ: %v", laptops)
+
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "Laptop object finding failed: %v", err)
+	}
+
+	for _, laptop := range laptops {
+		err := found(convertToProtoLaptop(&laptop))
+		if err != nil {
+			return status.Errorf(codes.Internal, "Internal error: %v", err)
+		}
+	}
+
+	return status.Errorf(codes.Unimplemented, "method FilterLaptops not implemented")
 }

@@ -5,6 +5,7 @@ option go_package = "/psm";
 package process_manager;
 
 import "proto/laptop_message.proto";
+import "proto/filter_message.proto";
 
 message CreateLaptopRequest{
     Laptop laptop = 1;
@@ -22,7 +23,16 @@ message FindLaptopResponse{
     Laptop laptop = 1;
 }
 
+message FilterLaptopRequest{
+    Filter filter = 1;
+}
+
+message FilterLaptopResponse{
+    Laptop laptop = 1;
+}
+
 service LaptopService{
     rpc CreateLaptop(CreateLaptopRequest) returns (CreateLaptopResponse){};
     rpc FindLaptop(FindLaptopRequest) returns (FindLaptopResponse){};
+    rpc FilterLaptop(FilterLaptopRequest) returns (stream FilterLaptopResponse){};
 }

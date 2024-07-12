@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+option go_package = "/psm";
+
+package process_manager;
+
+message Filter{
+    double max_price_inr = 1;
+    string cpu = 2;
+    string gpu = 3;
+}

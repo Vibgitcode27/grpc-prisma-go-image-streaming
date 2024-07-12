@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion8
 const (
 	LaptopService_CreateLaptop_FullMethodName = "/process_manager.LaptopService/CreateLaptop"
 	LaptopService_FindLaptop_FullMethodName   = "/process_manager.LaptopService/FindLaptop"
+	LaptopService_FilterLaptop_FullMethodName = "/process_manager.LaptopService/FilterLaptop"
 )
 
 // LaptopServiceClient is the client API for LaptopService service.
@@ -29,6 +30,7 @@ const (
 type LaptopServiceClient interface {
 	CreateLaptop(ctx context.Context, in *CreateLaptopRequest, opts ...grpc.CallOption) (*CreateLaptopResponse, error)
 	FindLaptop(ctx context.Context, in *FindLaptopRequest, opts ...grpc.CallOption) (*FindLaptopResponse, error)
+	FilterLaptop(ctx context.Context, in *FilterLaptopRequest, opts ...grpc.CallOption) (LaptopService_FilterLaptopClient, error)
 }
 
 type laptopServiceClient struct {
@@ -59,12 +61,46 @@ func (c *laptopServiceClient) FindLaptop(ctx context.Context, in *FindLaptopRequ
 	return out, nil
 }
 
+func (c *laptopServiceClient) FilterLaptop(ctx context.Context, in *FilterLaptopRequest, opts ...grpc.CallOption) (LaptopService_FilterLaptopClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &LaptopService_ServiceDesc.Streams[0], LaptopService_FilterLaptop_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &laptopServiceFilterLaptopClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type LaptopService_FilterLaptopClient interface {
+	Recv() (*FilterLaptopResponse, error)
+	grpc.ClientStream
+}
+
+type laptopServiceFilterLaptopClient struct {
+	grpc.ClientStream
+}
+
+func (x *laptopServiceFilterLaptopClient) Recv() (*FilterLaptopResponse, error) {
+	m := new(FilterLaptopResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // LaptopServiceServer is the server API for LaptopService service.
 // All implementations must embed UnimplementedLaptopServiceServer
 // for forward compatibility
 type LaptopServiceServer interface {
 	CreateLaptop(context.Context, *CreateLaptopRequest) (*CreateLaptopResponse, error)
 	FindLaptop(context.Context, *FindLaptopRequest) (*FindLaptopResponse, error)
+	FilterLaptop(*FilterLaptopRequest, LaptopService_FilterLaptopServer) error
 	mustEmbedUnimplementedLaptopServiceServer()
 }
 
@@ -77,6 +113,9 @@ func (UnimplementedLaptopServiceServer) CreateLaptop(context.Context, *CreateLap
 }
 func (UnimplementedLaptopServiceServer) FindLaptop(context.Context, *FindLaptopRequest) (*FindLaptopResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindLaptop not implemented")
+}
+func (UnimplementedLaptopServiceServer) FilterLaptop(*FilterLaptopRequest, LaptopService_FilterLaptopServer) error {
+	return status.Errorf(codes.Unimplemented, "method FilterLaptop not implemented")
 }
 func (UnimplementedLaptopServiceServer) mustEmbedUnimplementedLaptopServiceServer() {}
 
@@ -127,6 +166,27 @@ func _LaptopService_FindLaptop_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LaptopService_FilterLaptop_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(FilterLaptopRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(LaptopServiceServer).FilterLaptop(m, &laptopServiceFilterLaptopServer{ServerStream: stream})
+}
+
+type LaptopService_FilterLaptopServer interface {
+	Send(*FilterLaptopResponse) error
+	grpc.ServerStream
+}
+
+type laptopServiceFilterLaptopServer struct {
+	grpc.ServerStream
+}
+
+func (x *laptopServiceFilterLaptopServer) Send(m *FilterLaptopResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // LaptopService_ServiceDesc is the grpc.ServiceDesc for LaptopService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -143,6 +203,12 @@ var LaptopService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _LaptopService_FindLaptop_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "FilterLaptop",
+			Handler:       _LaptopService_FilterLaptop_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "proto/laptop_service.proto",
 }
