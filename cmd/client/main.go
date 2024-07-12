@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"fmt"
@@ -8,6 +9,8 @@ import (
 	"great/sample"
 	"io"
 	"log"
+	"os"
+	"path/filepath"
 	"time"
 
 	"google.golang.org/grpc"
@@ -15,8 +18,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func CreateLaptop(laptopClient psm.LaptopServiceClient) {
-	laptop := sample.NewLaptop()
+func CreateLaptop(laptopClient psm.LaptopServiceClient, laptop *psm.Laptop) {
+	// laptop := sample.NewLaptop()
 
 	req := &psm.CreateLaptopRequest{
 		Laptop: laptop,
@@ -99,6 +102,74 @@ func FilterLaptop(laptopClient psm.LaptopServiceClient) {
 		log.Printf("Laptop CPU ghz: %f", laptop.GetCpu().GetMinGhz())
 		log.Printf("Laptop RAM: %d %s", laptop.GetRam().GetValue(), laptop.GetRam().GetUnit())
 	}
+}
+
+func uploadImage(laptopClient psm.LaptopServiceClient, laptopID string, imagePath string) {
+	file, err := os.Open(imagePath)
+	if err != nil {
+		log.Fatal("Cannot open image file", err)
+	}
+	defer file.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stream, err := laptopClient.UploadImage(ctx)
+	if err != nil {
+		log.Fatal("Cannot upload image", err)
+	}
+
+	req := &psm.UploadImageRequest{
+		Data: &psm.UploadImageRequest_Image{
+			Image: &psm.Image{
+				ImageId:   laptopID, // The image ID is the same as the laptop ID this is mistake I made in naming the field in proto file
+				ImageType: filepath.Ext(imagePath),
+			},
+		},
+	}
+
+	err = stream.Send(req)
+	if err != nil {
+		log.Fatal("Cannot send image", err)
+	}
+
+	reader := bufio.NewReader(file)
+	buffer := make([]byte, 1024)
+	for {
+		n, err := reader.Read(buffer)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal("Cannot read chunk to buffer", err)
+		}
+
+		req := &psm.UploadImageRequest{
+			Data: &psm.UploadImageRequest_ChunkData{
+				ChunkData: buffer[:n],
+			},
+		}
+
+		err = stream.Send(req)
+		if err != nil {
+			err2 := stream.RecvMsg(nil)
+			log.Fatal("Cannot send chunk to server", err, err2)
+		}
+	}
+
+	res, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatal("Cannot receive response from server", err)
+	}
+
+	log.Printf("Image uploaded with id: %s, size: %d", res.Id, res.Size)
+
+}
+
+func testUploadImage(laptopClient psm.LaptopServiceClient) {
+	laptop := sample.NewLaptop()
+	CreateLaptop(laptopClient, laptop)
+	uploadImage(laptopClient, laptop.GetId(), "tmp/laptop.jpg")
 }
 
 func main() {

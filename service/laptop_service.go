@@ -1,10 +1,12 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"great/prisma/db"
 	"great/psm"
+	"io"
 	"log"
 
 	"github.com/google/uuid"
@@ -12,9 +14,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const MaxImageSize = 1 << 20 // 1 MB
+
 type LaptopService struct {
 	psm.UnimplementedLaptopServiceServer
-	Db *db.PrismaClient
+	imageStore ImageStore
+	Db         *db.PrismaClient
 }
 
 func NewLaptopService(db *db.PrismaClient) *LaptopService {
@@ -91,5 +96,80 @@ func (Db *LaptopService) FilterLaptop(req *psm.FilterLaptopRequest, stream psm.L
 	}
 
 	return nil
+}
 
+func (Db *LaptopService) UploadImage(stream psm.LaptopService_UploadImageServer) error {
+
+	req, err := stream.Recv()
+	if err != nil {
+		return status.Errorf(codes.Unknown, "cannot receive image info: %v", err)
+	}
+
+	laptopID := req.GetImage().GetImageId()
+	imageType := req.GetImage().GetImageType()
+
+	log.Printf("Receive an upload-image request for laptop %s with image type %s\n", laptopID, imageType)
+
+	db_service := NewPrismaLaptopService(Db.Db)
+
+	laptop, err := db_service.FindLaptop(context.Background(), &psm.Laptop{Id: laptopID})
+	if err != nil {
+		return status.Errorf(codes.Internal, "cannot find laptop: %v", err)
+	}
+
+	if laptop == nil {
+		return status.Errorf(codes.InvalidArgument, "laptop %s doesn't exist", laptopID)
+	}
+
+	imageDate := bytes.Buffer{}
+	imageSize := 0
+
+	for {
+		log.Print("Waiting to receive more data")
+
+		req, err := stream.Recv()
+
+		if err == io.EOF {
+			log.Print("No more data")
+			break
+		}
+
+		if err != nil {
+			return status.Errorf(codes.Unknown, "cannot receive chunk data: %v", err)
+		}
+
+		chunk := req.GetChunkData()
+		size := len(chunk)
+
+		imageSize += size
+		if imageSize >= MaxImageSize {
+			return status.Errorf(codes.InvalidArgument, "image is too large: %d > %d", imageSize, MaxImageSize)
+		}
+
+		_, err = imageDate.Write(chunk)
+		if err != nil {
+			return status.Errorf(codes.Internal, "cannot write chunk data: %v", err)
+		}
+
+	}
+
+	imageID, err := Db.imageStore.Save(laptopID, imageType, imageDate)
+	if err != nil {
+		return status.Errorf(codes.Internal, "cannot save image to store: %v", err)
+	}
+
+	res := &psm.UploadImageResponse{
+		Id:   imageID,
+		Size: uint32(imageSize),
+	}
+
+	err = stream.SendAndClose(res)
+
+	if err != nil {
+		return status.Errorf(codes.Internal, "cannot send response: %v", err)
+	}
+
+	log.Printf("Image with ID %s and size %d has been saved successfully", imageID, imageSize)
+
+	return nil
 }

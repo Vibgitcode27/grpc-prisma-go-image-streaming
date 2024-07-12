@@ -22,6 +22,7 @@ const (
 	LaptopService_CreateLaptop_FullMethodName = "/process_manager.LaptopService/CreateLaptop"
 	LaptopService_FindLaptop_FullMethodName   = "/process_manager.LaptopService/FindLaptop"
 	LaptopService_FilterLaptop_FullMethodName = "/process_manager.LaptopService/FilterLaptop"
+	LaptopService_UploadImage_FullMethodName  = "/process_manager.LaptopService/UploadImage"
 )
 
 // LaptopServiceClient is the client API for LaptopService service.
@@ -31,6 +32,7 @@ type LaptopServiceClient interface {
 	CreateLaptop(ctx context.Context, in *CreateLaptopRequest, opts ...grpc.CallOption) (*CreateLaptopResponse, error)
 	FindLaptop(ctx context.Context, in *FindLaptopRequest, opts ...grpc.CallOption) (*FindLaptopResponse, error)
 	FilterLaptop(ctx context.Context, in *FilterLaptopRequest, opts ...grpc.CallOption) (LaptopService_FilterLaptopClient, error)
+	UploadImage(ctx context.Context, opts ...grpc.CallOption) (LaptopService_UploadImageClient, error)
 }
 
 type laptopServiceClient struct {
@@ -94,6 +96,41 @@ func (x *laptopServiceFilterLaptopClient) Recv() (*FilterLaptopResponse, error) 
 	return m, nil
 }
 
+func (c *laptopServiceClient) UploadImage(ctx context.Context, opts ...grpc.CallOption) (LaptopService_UploadImageClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &LaptopService_ServiceDesc.Streams[1], LaptopService_UploadImage_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &laptopServiceUploadImageClient{ClientStream: stream}
+	return x, nil
+}
+
+type LaptopService_UploadImageClient interface {
+	Send(*UploadImageRequest) error
+	CloseAndRecv() (*UploadImageResponse, error)
+	grpc.ClientStream
+}
+
+type laptopServiceUploadImageClient struct {
+	grpc.ClientStream
+}
+
+func (x *laptopServiceUploadImageClient) Send(m *UploadImageRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *laptopServiceUploadImageClient) CloseAndRecv() (*UploadImageResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(UploadImageResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // LaptopServiceServer is the server API for LaptopService service.
 // All implementations must embed UnimplementedLaptopServiceServer
 // for forward compatibility
@@ -101,6 +138,7 @@ type LaptopServiceServer interface {
 	CreateLaptop(context.Context, *CreateLaptopRequest) (*CreateLaptopResponse, error)
 	FindLaptop(context.Context, *FindLaptopRequest) (*FindLaptopResponse, error)
 	FilterLaptop(*FilterLaptopRequest, LaptopService_FilterLaptopServer) error
+	UploadImage(LaptopService_UploadImageServer) error
 	mustEmbedUnimplementedLaptopServiceServer()
 }
 
@@ -116,6 +154,9 @@ func (UnimplementedLaptopServiceServer) FindLaptop(context.Context, *FindLaptopR
 }
 func (UnimplementedLaptopServiceServer) FilterLaptop(*FilterLaptopRequest, LaptopService_FilterLaptopServer) error {
 	return status.Errorf(codes.Unimplemented, "method FilterLaptop not implemented")
+}
+func (UnimplementedLaptopServiceServer) UploadImage(LaptopService_UploadImageServer) error {
+	return status.Errorf(codes.Unimplemented, "method UploadImage not implemented")
 }
 func (UnimplementedLaptopServiceServer) mustEmbedUnimplementedLaptopServiceServer() {}
 
@@ -187,6 +228,32 @@ func (x *laptopServiceFilterLaptopServer) Send(m *FilterLaptopResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _LaptopService_UploadImage_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(LaptopServiceServer).UploadImage(&laptopServiceUploadImageServer{ServerStream: stream})
+}
+
+type LaptopService_UploadImageServer interface {
+	SendAndClose(*UploadImageResponse) error
+	Recv() (*UploadImageRequest, error)
+	grpc.ServerStream
+}
+
+type laptopServiceUploadImageServer struct {
+	grpc.ServerStream
+}
+
+func (x *laptopServiceUploadImageServer) SendAndClose(m *UploadImageResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *laptopServiceUploadImageServer) Recv() (*UploadImageRequest, error) {
+	m := new(UploadImageRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // LaptopService_ServiceDesc is the grpc.ServiceDesc for LaptopService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -208,6 +275,11 @@ var LaptopService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "FilterLaptop",
 			Handler:       _LaptopService_FilterLaptop_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "UploadImage",
+			Handler:       _LaptopService_UploadImage_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "proto/laptop_service.proto",
