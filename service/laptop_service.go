@@ -48,3 +48,23 @@ func (Db *LaptopService) CreateLaptop(ctx context.Context, p *psm.CreateLaptopRe
 		Id: laptop.Id,
 	}, nil
 }
+
+func (Db *LaptopService) FindLaptop(ctx context.Context, p *psm.FindLaptopRequest) (*psm.FindLaptopResponse, error) {
+
+	laptopId := p.GetId()
+	if len(laptopId) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "Laptop ID cannot be empty")
+	}
+
+	db_service := NewPrismaLaptopService(Db.Db)
+
+	lappy, err := db_service.FindLaptop(context.Background(), &psm.Laptop{Id: laptopId})
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "cannot find laptop: %v", err)
+	}
+
+	return &psm.FindLaptopResponse{
+		Laptop: lappy,
+	}, nil
+
+}

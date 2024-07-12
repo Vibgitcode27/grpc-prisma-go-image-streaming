@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"great/prisma/db"
 	"great/psm"
+	"great/sample"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type PrismaLaptopService struct {
@@ -41,4 +43,44 @@ func (p *PrismaLaptopService) Createlaptop(ctx context.Context, laptop *psm.Lapt
 	fmt.Println(data)
 	// return response
 	return nil
+}
+
+func (p *PrismaLaptopService) FindLaptop(ctx context.Context, laptop *psm.Laptop) (*psm.Laptop, error) {
+	data, err := p.Db.Laptop.FindUnique(
+		db.Laptop.ID.Equals(laptop.Id),
+	).Exec(ctx)
+
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Laptop object finding failed: %v", err)
+	}
+	fmt.Println(data.ID)
+
+	fetchedLaptop := convertToProtoLaptop(data)
+
+	return fetchedLaptop, nil
+	// return nil
+}
+
+// convertToProtoLaptop converts a Prisma Laptop model to a gRPC Laptop message
+func convertToProtoLaptop(data *db.LaptopModel) *psm.Laptop {
+	// Assuming you have appropriate conversion logic from string to enums for the proto messages
+	// Adjust as per your application logic
+
+	laptop := sample.NewLaptop()
+
+	return &psm.Laptop{
+		Id:          data.ID,
+		Brand:       data.Brand,
+		Name:        data.Name,
+		Cpu:         laptop.Cpu,                         // Will have to extract the CPU from the data string , as this is the practice project I am not doing it
+		Gpu:         laptop.Gpu,                         // Will have to extract the CPU from the data string , as this is the practice project I am not doing it
+		Ram:         laptop.Ram,                         // Will have to extract the CPU from the data string , as this is the practice project I am not doing it
+		Keyboard:    laptop.Keyboard,                    // Will have to extract the CPU from the data string , as this is the practice project I am not doing it
+		Storages:    laptop.Storages,                    // Will have to extract the CPU from the data string , as this is the practice project I am not doing it
+		Screen:      laptop.Screen,                      // Will have to extract the CPU from the data string , as this is the practice project I am not doing it
+		Weight:      &psm.Laptop_WeightKg{WeightKg: 10}, // Adjust as necessary for your weight logic
+		PriceInr:    data.PriceInr,
+		ReleaseYear: uint32(data.ReleaseYear),
+		UpdatedAt:   timestamppb.New(data.UpdatedAt),
+	}
 }
